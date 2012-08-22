@@ -19,6 +19,10 @@ module Sequences
 			self.class.new(self.tr("ACGT", "TGCA").reverse)
 		end
 
+		def reverse_palindrome?
+			self.to_s == self.reverse_complement.to_s
+		end
+
 		def to_rna
 			Sequences::RNA.new(self.gsub("T", "U"))
 		end
