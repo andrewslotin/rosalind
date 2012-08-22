@@ -8,6 +8,10 @@ module Sequences
 			comparee = s.is_a?(self.class) ? s : self.class.new(s)
 			super(comparee) || super(comparee.reverse_complement)
 		end
+
+		def gc_content
+			self.tr("ACGT", "0110").split("").map { |n| n.to_i }.inject(:+).to_f / self.length
+		end
 	end
 
 	class DNA < Base
@@ -77,3 +81,29 @@ class SequenceMatrix
 		@matrix.transpose.map { |seq_array| seq_array.join(" ") }.join("\n")
 	end
 end
+
+class FASTAReader
+	def self.read(io, &block)
+		name = nil
+		sequence = ""
+		sequences = {}
+
+		block = lambda { |name, seq| sequences[name] = seq } unless block_given?
+
+		io.each_line do |line|
+			line.strip!
+
+			if line[/^>/]
+				block.call name, Sequences::DNA.new(sequence) if name && sequence.length > 0
+				name = line.sub(/^>/, "")
+				sequence = ""
+			else
+				sequence += line
+			end
+		end
+
+		block.call name, Sequences::DNA.new(sequence) if name && sequence.length > 0
+
+		sequences unless block_given?
+	end
+end	
