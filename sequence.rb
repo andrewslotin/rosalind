@@ -1,9 +1,19 @@
 module Sequences
 	class Base < String
+		def initialize(sequence)
+			super sequence.upcase.gsub(Regexp.new("[^#{alphabet}]"), "")
+		end
+
 		def hamming_distance_from(s)
 			(0...[self.length, s.length].min).map { |i| self[i].ord == s[i].ord ? 0 : 1 }.inject(:+)
 		end
 
+		protected
+
+		def alphabet ; end
+	end
+
+	class NA < Base
 		def ==(s)
 			comparee = s.is_a?(self.class) ? s : self.class.new(s)
 			super(comparee) || super(comparee.reverse_complement)
@@ -20,13 +30,9 @@ module Sequences
 		def gc_content
 			self.tr("ACGT", "0110").split("").map { |n| n.to_i }.inject(:+).to_f / self.length
 		end
-
-		protected
-
-		def alphabet ; end
 	end
 
-	class DNA < Base
+	class DNA < NA
 		def to_rna
 			Sequences::RNA.new(self.gsub("T", "U"))
 		end
@@ -38,15 +44,46 @@ module Sequences
 		end
 	end
 
-	class RNA < Base
+	class RNA < NA
+		CODON_TABLE = {
+			"UUU" => "F", "CUU" => "L", "AUU" => "I", "GUU" => "V",
+			"UUC" => "F", "CUC" => "L", "AUC" => "I", "GUC" => "V",
+			"UUA" => "L", "CUA" => "L", "AUA" => "I", "GUA" => "V",
+			"UUG" => "L", "CUG" => "L", "AUG" => "M", "GUG" => "V",
+			"UCU" => "S", "CCU" => "P", "ACU" => "T", "GCU" => "A",
+			"UCC" => "S", "CCC" => "P", "ACC" => "T", "GCC" => "A",
+			"UCA" => "S", "CCA" => "P", "ACA" => "T", "GCA" => "A",
+			"UCG" => "S", "CCG" => "P", "ACG" => "T", "GCG" => "A",
+			"UAU" => "Y", "CAU" => "H", "AAU" => "N", "GAU" => "D",
+			"UAC" => "Y", "CAC" => "H", "AAC" => "N", "GAC" => "D",
+			"UAA" => nil, "CAA" => "Q", "AAA" => "K", "GAA" => "E",
+			"UAG" => nil, "CAG" => "Q", "AAG" => "K", "GAG" => "E",
+			"UGU" => "C", "CGU" => "R", "AGU" => "S", "GGU" => "G",
+			"UGC" => "C", "CGC" => "R", "AGC" => "S", "GGC" => "G",
+			"UGA" => nil, "CGA" => "R", "AGA" => "R", "GGA" => "G",
+			"UGG" => "W", "CGG" => "R", "AGG" => "R", "GGG" => "G"
+		}.freeze
+
 		def to_dna
 			Sequences::DNA.new(self.gsub("U", "T"))
+		end
+
+		def to_protein
+			Protein.new(self[/AUG(?:.{3})*(?:UAA|UAG|UGA)/].scan(/.{3}/).map { |codon| CODON_TABLE[codon] if CODON_TABLE[codon] }.join)
 		end
 
 		protected
 
 		def alphabet
 			"ACGU"
+		end
+	end
+
+	class Protein < Base
+		protected
+
+		def alphabet
+			(("A".."Z").to_a - %w{B J O U X Z}).join
 		end
 	end
 end
