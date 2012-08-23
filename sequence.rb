@@ -9,28 +9,44 @@ module Sequences
 			super(comparee) || super(comparee.reverse_complement)
 		end
 
-		def gc_content
-			self.tr("ACGT", "0110").split("").map { |n| n.to_i }.inject(:+).to_f / self.length
-		end
-	end
-
-	class DNA < Base
 		def reverse_complement
-			self.class.new(self.tr("ACGT", "TGCA").reverse)
+			self.class.new(self.tr(alphabet, alphabet.reverse).reverse)
 		end
 
 		def reverse_palindrome?
 			self.to_s == self.reverse_complement.to_s
 		end
 
+		def gc_content
+			self.tr("ACGT", "0110").split("").map { |n| n.to_i }.inject(:+).to_f / self.length
+		end
+
+		protected
+
+		def alphabet ; end
+	end
+
+	class DNA < Base
 		def to_rna
 			Sequences::RNA.new(self.gsub("T", "U"))
+		end
+
+		protected
+
+		def alphabet
+			"ACGT"
 		end
 	end
 
 	class RNA < Base
 		def to_dna
 			Sequences::DNA.new(self.gsub("U", "T"))
+		end
+
+		protected
+
+		def alphabet
+			"ACGU"
 		end
 	end
 end
